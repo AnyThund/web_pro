@@ -1,0 +1,4 @@
+__pycache__/
+test*.py
+记录.md
+client_gui.py
