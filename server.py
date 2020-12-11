@@ -2,7 +2,6 @@ import os
 import socket
 import threading
 from copy import deepcopy
-from time import ctime
 
 HOST = ''
 PORT = 8000
@@ -28,16 +27,18 @@ def msg_handle(data, addr, conn):
     elif head == 'MSG':
         print(usrs, type(usrs))
         for usr in eval(usrs):
-            ADDR_CONN[usr].send('MSG::[{0}] {1}'.format(ctime(), data).encode())
+            ADDR_CONN[usr].send(f'MSG::{data}'.encode())
         # conn.send('MSG:[{0}] {1}'.format(ctime(), data).encode())
     elif head == 'FILE':
         info = eval(data)
-        name = os.path.basename(info['name'])
+        name = info['name']
         size = info['size']
         for usr in eval(usrs):
             ADDR_CONN[usr].send(
-                f'FILE::[{ctime()}] 是否接收来自{addr}的文件\n{name} {size}\n是[Y]/否[N]'.encode()
+                f'FILE::是否接收来自{addr}的文件\n{name} {size}\n是[Y]/否[N]'.encode()
             )
+    elif head == 'IMG':
+        pass
 
 def link_solve(conn, addr):
     while 1:
