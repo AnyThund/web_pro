@@ -4,6 +4,7 @@ import threading
 from time import ctime
 from tkinter import *
 from tkinter import filedialog, scrolledtext
+import json
 
 HOST = '127.0.0.1' # or 'localhost'
 PORT = 8000
@@ -15,7 +16,8 @@ s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.connect(ADDR)
 
 def handle_data(data):
-    head,msg = data.split('::')
+    head = data["head"]
+    msg = data["data"]
     if head == 'ONLINE':
         addrs = eval(msg)
         gui.lb.delete(0, 'end')
@@ -33,6 +35,7 @@ def handle_data(data):
 def recv_data():
     while 1:
         data = s.recv(BUFFER).decode('utf-8')
+        data = json.loads(data)
         if not data:
             break
         handle_data(data)
@@ -65,10 +68,10 @@ class ClintWindow(object):
         self.frm_L_btn = Frame(self.frm_L)
         self.frm_L_btn.pack(side=TOP, fill=BOTH)
 
-        self.file = Button(self.frm_L_btn, text='文件', command=self.select_file)
-        self.file.pack(side=LEFT, anchor=W)
-        self.send = Button(self.frm_L_btn, text='发送', command=self.send_msg)
-        self.send.pack(side=LEFT, anchor=E, expand=YES)
+        self.file_btn = Button(self.frm_L_btn, text='文件', command=self.select_file)
+        self.file_btn.pack(side=LEFT, anchor=W)
+        self.send_btn = Button(self.frm_L_btn, text='发送', command=self.send_msg)
+        self.send_btn.pack(side=LEFT, anchor=E, expand=YES)
         self.text_input = Text(self.frm_L, height=12)
         self.text_input.pack(side=TOP, fill=BOTH)
 
@@ -133,6 +136,8 @@ class ClintWindow(object):
     def get_online_list(self):
         self.show_msg('正在获取在线列表...')
         s.send('ONLINE::::'.encode())
+    def send(self, data):
+        s.send(json.dumps(data).encode())
     def show_msg(self, msg, tag=''):
         self.text_show.config(state=NORMAL)
         if tag == 'send':

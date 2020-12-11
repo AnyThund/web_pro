@@ -3,6 +3,7 @@ import socket
 import threading
 from copy import deepcopy
 from time import ctime
+import json
 
 HOST = ''
 PORT = 8000
@@ -16,10 +17,22 @@ s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.bind(ADDR)
 s.listen(10)
 
+# 基本数据结构
+# {
+#     "head":"",
+#     "data":"",
+#     "usrs":[]
+# }
+# head - "MSG", "ONLINE", "FILE"
+# usrs - [(HOST, PORT), ...]
+
 def msg_handle(data, addr, conn):
     data = data.decode('utf-8')
     print(data)
     head,data,usrs = data.split('::')
+    head = data["head"]
+    data = data["data"]
+    usrs = data["usrs"]
     if head == 'ONLINE':
         addr_copy = deepcopy(ADDRS)
         addr_copy.remove(addr)
