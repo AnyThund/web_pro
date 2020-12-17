@@ -11,14 +11,24 @@ ADDR = (HOST, PORT)
 ADDRS = []
 ADDR_CONN = {}
 
+FILE_RECV = []
+
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.bind(ADDR)
 s.listen(10)
 
-def msg_handle(data, addr, conn):
-    data = data.decode('utf-8')
-    print(data)
-    head,data,usrs = data.split('::')
+def msg_handle(data, conn: socket.socket, addr: tuple):
+    try:
+        data = data.decode('utf-8')
+        try:
+            head,data,usrs = data.split('::')
+        except (TypeError, ValueError):
+            print('Transmitting file...')
+            data = data.encode()
+            head = ''
+    except UnicodeDecodeError:
+        print('Transmitting file...')
+        head = ''
     if head == 'ONLINE':
         addr_copy = deepcopy(ADDRS)
         addr_copy.remove(addr)
@@ -27,27 +37,41 @@ def msg_handle(data, addr, conn):
     elif head == 'MSG':
         print(usrs, type(usrs))
         for usr in eval(usrs):
-            ADDR_CONN[usr].send(f'MSG::{data}'.encode())
+            try:
+                ADDR_CONN[usr].send(f'MSG::{data}'.encode())
+            except OSError:
+                ADDR_CONN.pop(usr)
         # conn.send('MSG:[{0}] {1}'.format(ctime(), data).encode())
     elif head == 'FILE':
-        info = eval(data)
-        name = info['name']
-        size = info['size']
-        for usr in eval(usrs):
-            ADDR_CONN[usr].send(
-                f'FILE::是否接收来自{addr}的文件\n{name} {size}\n是[Y]/否[N]'.encode()
-            )
+        FILE_RECV.clear()
+        if data == 'OK':
+            usr = eval(usrs)
+            FILE_RECV.append(addr)
+            ADDR_CONN[usr].send(f'FILE::OK'.encode())
+        else:
+            for usr in eval(usrs):
+                ADDR_CONN[usr].send(f'FILE::{data};;{addr}'.encode())
+        # t = threading.Thread(target=file_handle, args=(data,usrs,conn,addr))
+        # t.start()
     elif head == 'IMG':
-        pass
+        FILE_RECV.clear()
+        for usr in eval(usrs):
+            FILE_RECV.append(usr)
+            ADDR_CONN[usr].send(f'IMG::{data};;{addr}'.encode())
+        print(usrs)
+    else:
+        # print(data, type(data))
+        for usr in FILE_RECV:
+            ADDR_CONN[usr].send(data)
 
-def link_solve(conn, addr):
+def link_solve(conn: socket.socket, addr: tuple):
     while 1:
         try:
             # data = conn.recv(BUFFER).decode('utf-8')
             data = conn.recv(BUFFER)
             if not data:
                 break
-            msg_handle(data, addr, conn)
+            msg_handle(data, conn, addr)
         except ConnectionResetError as e:
             print(f'{e}')
             print(f'{addr} offline.')
